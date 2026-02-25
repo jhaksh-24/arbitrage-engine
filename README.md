@@ -1,8 +1,8 @@
 # CELAE — Cross-Exchange Latency Arbitrage Engine
 
-A high-performance, low-latency cross-exchange arbitrage engine built in **C++20** with an **FPGA-accelerated order book** (Verilog). Designed to detect and exploit price discrepancies across cryptocurrency exchanges at nanosecond-level speeds.
+A high-performance, low-latency cross-exchange arbitrage engine built in **C++20**. Designed to detect and exploit price discrepancies across cryptocurrency exchanges at microsecond-level speeds.
 
-> **Status:** Phase 2 — FPGA Order Book (in progress)
+> **Status:** Phase 2 — Order Book (in progress)
 
 ## Architecture
 
@@ -42,14 +42,8 @@ CELAE/
 │       ├── clock.hpp              # High-resolution timing (steady_clock, ScopedTimer)
 │       ├── ring_buffer.hpp        # Lock-free SPSC ring buffer for inter-thread comms
 │       └── memory_pool.hpp        # Pre-allocated object pool (zero-alloc hot path)
-├── rtl/                           # Verilog HDL source (FPGA order book)
-│   ├── order_book.v               # Top-level order book module
-│   ├── price_level.v              # Single price level register pair
-│   └── comparator.v               # Parallel price comparator array
-├── tb/                            # Verilog testbenches
-│   └── tb_order_book.v            # Order book simulation testbench
-├── src/                           # C++ implementation files (future phases)
-├── tests/                         # C++ unit tests (future)
+├── src/                           # C++ implementation files
+├── tests/                         # Unit tests (future)
 ├── bench/                         # Latency benchmarks (future)
 └── docs/                          # Architecture & tuning docs (future)
 ```
@@ -68,11 +62,11 @@ Inter-thread communication uses a SPSC (Single-Producer, Single-Consumer) ring b
 - `alignas(64)` on atomic indices (prevents false sharing across cache lines)
 - `memory_order_acquire` / `memory_order_release` for correct ordering without locks
 
-### FPGA-Accelerated Order Book
-The order book is implemented in Verilog for hardware-level performance:
-- Parallel price comparison across all levels in a single clock cycle
-- Sorted insertion via shift registers — O(1) clock cycles
-- Target latency: ~3 clock cycles (~15ns at 200MHz) vs ~200-500ns in C++
+### Cache-Friendly Order Book
+The order book is designed for minimal cache misses and zero heap allocation on the hot path:
+- Flat arrays instead of pointer-heavy trees
+- Pre-allocated memory pool for order storage
+- O(1) best bid/ask access
 
 ## Build
 
@@ -87,7 +81,7 @@ cmake --build . --config Release
 ## Roadmap
 
 - [x] **Phase 1** — Core types, clock, ring buffer, memory pool
-- [ ] **Phase 2** — FPGA order book (Verilog HDL, simulated via Icarus Verilog)
+- [ ] **Phase 2** — High-performance order book
 - [ ] **Phase 3** — Exchange connectivity & feed handlers (Binance WebSocket)
 - [ ] **Phase 4** — Arbitrage detection strategy
 - [ ] **Phase 5** — Order execution layer
