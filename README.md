@@ -37,7 +37,8 @@ CELAE/
 │   └── main.cpp                   # Entry point
 ├── include/arb/
 │   ├── core/
-│   │   └── types.hpp              # Fundamental types: Price, Quantity, Timestamp, OrderId
+│   │   ├── types.hpp              # Fundamental types: Price, Quantity, Timestamp, OrderId
+│   │   └── price_level.hpp        # L2 price level (price + quantity aggregate)
 │   └── utils/
 │       ├── clock.hpp              # High-resolution timing (steady_clock, ScopedTimer)
 │       ├── ring_buffer.hpp        # Lock-free SPSC ring buffer for inter-thread comms
