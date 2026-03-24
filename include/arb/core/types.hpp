@@ -97,6 +97,6 @@ constexpr double to_double_price(Price price) noexcept {
 }
 
 inline constexpr Price INVALID_PRICE{0};
-inline constexpr Price INVALID_QUANTITY{0};
+inline constexpr Quantity INVALID_QUANTITY{0};
 inline constexpr OrderId INVALID_ORDER_ID{0};
 } // namespace arb
