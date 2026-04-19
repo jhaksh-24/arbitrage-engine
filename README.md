@@ -39,7 +39,8 @@ CELAE/
 │   ├── core/
 │   │   ├── types.hpp              # Fundamental types: Price, Quantity, Timestamp, OrderId
 │   │   ├── price_level.hpp        # L2 price level (price + quantity aggregate)
-│   │   └── order.hpp              # Order struct (aggregate for execution layer)
+│   │   ├── order.hpp              # Order struct (aggregate for execution layer)
+│   │   └── order_book.hpp         # Chunked-array order book (BookSide)
 │   └── utils/
 │       ├── clock.hpp              # High-resolution timing (steady_clock, ScopedTimer)
 │       ├── ring_buffer.hpp        # Lock-free SPSC ring buffer for inter-thread comms
