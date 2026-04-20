@@ -121,6 +121,29 @@ public:
     if (chunk_count_ == MaxChunks) {
       return full_chunk;
     }
+
+    std::size_t idx = &full_chunk - &chunks_[0];
+
+    for (std::size_t index{chunk_count_}; index > idx; --index) {
+      chunks_[index] = chunks_[index - 1];
+    }
+    std::size_t mid{ChunkSize / 2};
+    std::array<PriceLevel, ChunkSize> levels;
+
+    std::copy(full_chunk.levels.begin() + mid, full_chunk.levels.end(),
+              levels.begin());
+
+    Chunk newChunk{levels, ChunkSize - mid};
+    full_chunk.count = mid;
+    chunks_[idx + 1] = newChunk;
+    chunk_count_++;
+
+    if (is_bid_ ? (price > chunks_[idx + 1].levels[0].getPrice())
+                : (price < chunks_[idx + 1].levels[0].getPrice())) {
+      return insert_level(price, qty, chunks_[idx]);
+    } else {
+      return insert_level(price, qty, chunks_[idx + 1]);
+    }
   }
 
 private:
