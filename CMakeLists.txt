@@ -57,6 +57,50 @@ else()
 endif()
 
 # ==================================================================================================
+# Network & Parsing Libraries
+# ==================================================================================================
+
+# 1. simdjson (Fastest JSON parser)
+set(SIMDJSON_ENABLE_THREADS OFF CACHE BOOL "" FORCE)
+set(SIMDJSON_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+include (FetchContent)
+FetchContent_Declare(
+  simdjson
+  GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+  GIT_TAG v3.9.5
+)
+FetchContent_MakeAvailable(simdjson)
+
+# 2. mbedtls (Lightweight TLS backend for ixwebsocket on Windows)
+set(ENABLE_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  mbedtls
+  GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
+  GIT_TAG v3.6.0
+)
+FetchContent_MakeAvailable(mbedtls)
+
+# 3. ixwebsocket (WebSocket Client)
+set(USE_TLS ON CACHE BOOL "" FORCE)
+set(USE_MBED_TLS ON CACHE BOOL "" FORCE)
+set(USE_OPEN_SSL OFF CACHE BOOL "" FORCE)
+set(USE_ZLIB OFF CACHE BOOL "" FORCE)
+set(IXWEBSOCKET_INSTALL OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+  ixwebsocket
+  GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
+  GIT_TAG v11.4.4
+)
+FetchContent_GetProperties(mbedtls)
+set(MBEDTLS_FOUND TRUE CACHE BOOL "" FORCE)
+set(MBEDTLS_INCLUDE_DIRS "${mbedtls_SOURCE_DIR}/include" CACHE PATH "" FORCE)
+set(MBEDTLS_LIBRARIES mbedtls mbedx509 mbedcrypto CACHE STRING "" FORCE)
+
+FetchContent_MakeAvailable(ixwebsocket)
+
+# ==================================================================================================
 # Executables + Linking
 # ==================================================================================================
 
