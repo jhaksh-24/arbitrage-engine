@@ -75,7 +75,7 @@ public:
     }
   }
 
-  Chunk insert_level(Price price, Quantity qty, Chunk &chunk) noexcept {
+  Chunk &insert_level(Price price, Quantity qty, Chunk &chunk) noexcept {
     if (chunk.count == ChunkSize) {
       return chunk_split(price, qty, chunk);
     }
@@ -83,8 +83,11 @@ public:
     std::size_t idx{};
     if (is_bid_) {
       for (; idx < chunk.count; idx++) {
-        if (idx + 1 < chunk.count && chunk.levels[idx].getPrice() > price &&
-            chunk.levels[idx + 1].getPrice() < price) {
+        if (idx == 0 && chunk.levels[idx].getPrice() < price) {
+          break;
+        } else if (idx + 1 < chunk.count &&
+                   chunk.levels[idx].getPrice() > price &&
+                   chunk.levels[idx + 1].getPrice() < price) {
           idx++;
           break;
         }
@@ -93,8 +96,11 @@ public:
 
     else {
       for (; idx < chunk.count; idx++) {
-        if (idx + 1 < chunk.count && chunk.levels[idx].getPrice() < price &&
-            chunk.levels[idx + 1].getPrice() > price) {
+        if (idx == 0 && chunk.levels[idx].getPrice() > price) {
+          break;
+        } else if (idx + 1 < chunk.count &&
+                   chunk.levels[idx].getPrice() < price &&
+                   chunk.levels[idx + 1].getPrice() > price) {
           idx++;
           break;
         }
