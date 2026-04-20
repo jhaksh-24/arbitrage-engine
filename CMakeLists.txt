@@ -85,11 +85,20 @@ include(GoogleTest)
 gtest_discover_tests(test_order_book)
 
 # ==================================================================================================
-# Benchmarks
+# Benchmarks (Google Benchmark)
 # ==================================================================================================
 
+FetchContent_Declare(
+  googlebenchmark
+  URL https://github.com/google/benchmark/archive/v1.8.3.zip
+)
+# Disable benchmark tests/install to speed up CMake
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googlebenchmark)
+
 add_executable(bench_order_book bench/bench_order_book.cpp)
-target_link_libraries(bench_order_book PRIVATE arb_core)
+target_link_libraries(bench_order_book PRIVATE arb_core benchmark::benchmark)
 
 # ==================================================================================================
 # Status Messages

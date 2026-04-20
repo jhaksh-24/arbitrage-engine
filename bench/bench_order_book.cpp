@@ -1,55 +1,37 @@
 #include "arb/core/order_book.hpp"
-#include "arb/utils/clock.hpp"
-#include <cstdint>
-#include <iostream>
-#include <ostream>
+#include <benchmark/benchmark.h>
 
 using namespace arb;
 
 inline Price P(int64_t val) { return Price{val}; }
 inline Quantity Q(int64_t val) { return Quantity{val}; }
 
-int main(void) {
-  std::cout << "= = = [ Chunked array Order book Benchmark ] = = =" << "\n\n";
-
+static void BM_OrderBookUpdate(benchmark::State& state) {
   OrderBook<32, 16> book;
-
-  // ===================================
-  // 1. Benchmark : insertion/update (going for 100k updates)
-  // ===================================
-
-  Duration update_duration{0};
-  const int num_updates = 100'000;
-  {
-    ScopedTimer timer(update_duration);
-    for (int i = 0; i < num_updates; ++i) {
-      int64_t fake_price = (i * 7) % 500;
-      book.update(Side::BUY, P(1000 + fake_price), Q(10));
-    }
+  int64_t i = 0;
+  
+  for (auto _ : state) {
+    int64_t fake_price = (i * 7) % 500;
+    book.update(Side::BUY, P(1000 + fake_price), Q(10));
+    ++i;
   }
-
-  std::cout << "[update] 100k operations took "
-            << nanos_to_string(update_duration) << "\n";
-  std::cout << "[update] Average latency: "
-            << update_duration.get() / num_updates << " ns/op\n\n";
-
-  // ===================================
-  // 2. Benchmark : Best Bid/Ask Read
-  // ===================================
-
-  Duration read_duration{0};
-  const int num_reads = 1'000'000;
-
-  {
-    ScopedTimer timer(read_duration);
-    for (int i = 0; i < num_reads; ++i) {
-      auto volatile _ = book.best_bid().getPrice().get();
-    }
-  }
-
-  std::cout << "[best_bid] 1M reads took " << nanos_to_string(read_duration)
-            << "\n";
-  std::cout << "[best_bid] Average latency: " << read_duration.get() / num_reads
-            << " ns/op\n\n";
-  return 0;
 }
+// Run the benchmark multiple times and average to get stable numbers
+BENCHMARK(BM_OrderBookUpdate)->Iterations(1000000);
+
+static void BM_OrderBookBestBidRead(benchmark::State& state) {
+  OrderBook<32, 16> book;
+  
+  // Pre-fill the book so it has data to read
+  book.update(Side::BUY, P(100), Q(50));
+  
+  for (auto _ : state) {
+    // benchmark::DoNotOptimize forces the compiler to perform the read
+    // and prevents dead code elimination
+    benchmark::DoNotOptimize(book.best_bid().getPrice());
+  }
+}
+BENCHMARK(BM_OrderBookBestBidRead)->Iterations(10000000);
+
+// Automatically generate the main function for Google Benchmark
+BENCHMARK_MAIN();
