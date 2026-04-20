@@ -51,7 +51,10 @@ public:
   }
 
   // Reset the book side — marks all chunks inactive.
-  void clear() noexcept { chunk_count_ = 0; }
+  void clear() noexcept { 
+    chunk_count_ = 0; 
+    chunks_[0].levels[0] = PriceLevel{}; // Clear the best level so best() returns empty
+  }
 
   void set_level(Price price, Quantity qty) noexcept {
     if (chunk_count_ == 0) {
