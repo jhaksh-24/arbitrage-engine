@@ -26,6 +26,8 @@ class BookSide {
   };
 
 public:
+  explicit BookSide(bool is_bid) noexcept : is_bid_{is_bid} {}
+
   // Returns the best price level (index 0 of chunk 0).
   // Bids: highest price. Asks: lowest price.
   [[nodiscard]]
@@ -150,6 +152,48 @@ private:
   std::array<Chunk, MaxChunks> chunks_;
   std::size_t chunk_count_{0}; // number of active chunks
   bool is_bid_{false}; // true = bids (descending), false = asks (ascending)
+};
+
+template <std::size_t ChunkSize = 32, std::size_t MaxChunks = 16>
+class OrderBook {
+public:
+  explicit OrderBook() noexcept : bids_{true}, asks_{false} {}
+
+  void update(Side side, Price price, Quantity qty) {
+    if (side == Side::BUY) {
+      bids_.set_level(price, qty);
+    } else {
+      asks_.set_level(price, qty);
+    }
+  }
+
+  [[nodiscard]]
+  constexpr const PriceLevel &best_bid() const noexcept {
+    return bids_.best();
+  }
+
+  [[nodiscard]]
+  constexpr const PriceLevel &best_ask() const noexcept {
+    return asks_.best();
+  }
+
+  [[nodiscard]]
+  constexpr Price spread() const noexcept {
+    return Price{best_ask().getPrice().get() - best_bid().getPrice().get()};
+  }
+
+  void clear() noexcept {
+    bids_.clear();
+    asks_.clear();
+  }
+
+  void clear_bids() noexcept { bids_.clear(); }
+
+  void clear_asks() noexcept { asks_.clear(); }
+
+private:
+  BookSide<ChunkSize, MaxChunks> bids_;
+  BookSide<ChunkSize, MaxChunks> asks_;
 };
 
 } // namespace arb
