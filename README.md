@@ -2,7 +2,9 @@
 
 A high-performance, low-latency cross-exchange arbitrage engine built in **C++20**. Designed to detect and exploit price discrepancies across cryptocurrency exchanges at microsecond-level speeds.
 
-> **Status:** Phase 3 — Exchange Connectivity (upcoming)
+> **Status:** Phase 3 — Exchange Connectivity (in progress)
+
+---
 
 ## Architecture
 
@@ -10,7 +12,7 @@ A high-performance, low-latency cross-exchange arbitrage engine built in **C++20
 ┌─────────────────────────────────────────────────────┐
 │                  STRATEGY LAYER                      │
 │  Arbitrage detection, signal generation, position    │
-│  management, risk checks                            │
+│  management, risk checks                             │
 ├─────────────────────────────────────────────────────┤
 │               ORDER MANAGEMENT SYSTEM                │
 │  Order routing, fill tracking, state machine         │
@@ -28,6 +30,8 @@ A high-performance, low-latency cross-exchange arbitrage engine built in **C++20
 └─────────────────────────────────────────────────────┘
 ```
 
+---
+
 ## Directory Structure
 
 ```
@@ -40,16 +44,20 @@ CELAE/
 │   │   ├── types.hpp              # Fundamental types: Price, Quantity, Timestamp, OrderId
 │   │   ├── price_level.hpp        # L2 price level (price + quantity aggregate)
 │   │   ├── order.hpp              # Order struct (aggregate for execution layer)
-│   │   └── order_book.hpp         # Chunked-array order book (BookSide)
+│   │   └── order_book.hpp         # Chunked-array order book (BookSide, OrderBook)
 │   └── utils/
 │       ├── clock.hpp              # High-resolution timing (steady_clock, ScopedTimer)
 │       ├── ring_buffer.hpp        # Lock-free SPSC ring buffer for inter-thread comms
 │       └── memory_pool.hpp        # Pre-allocated object pool (zero-alloc hot path)
+├── tests/
+│   └── test_order_book.cpp        # Unit tests for OrderBook (Google Test)
+├── bench/
+│   └── bench_order_book.cpp       # Latency benchmarks for OrderBook (Google Benchmark)
 ├── src/                           # C++ implementation files
-├── tests/                         # Unit tests (future)
-├── bench/                         # Latency benchmarks (future)
 └── docs/                          # Architecture & tuning docs (future)
 ```
+
+---
 
 ## Key Design Decisions
 
@@ -67,9 +75,12 @@ Inter-thread communication uses a SPSC (Single-Producer, Single-Consumer) ring b
 
 ### Cache-Friendly Order Book
 The order book is designed for minimal cache misses and zero heap allocation on the hot path:
+- Price space is split into fixed-size **chunks** — O(1) chunk lookup, bounded O(ChunkSize) shifts on insert/remove
 - Flat arrays instead of pointer-heavy trees
 - Pre-allocated memory pool for order storage
 - O(1) best bid/ask access
+
+---
 
 ## Build
 
@@ -81,15 +92,64 @@ cmake --build . --config Release
 
 **Requirements:** CMake 3.20+, C++20 compiler (MSVC 19.29+, GCC 11+, Clang 14+)
 
+---
+
+## Testing
+
+Unit tests are written with [Google Test](https://github.com/google/googletest) and are fetched automatically by CMake.
+
+```bash
+# From the build directory
+cmake --build . --target test_order_book
+ctest --output-on-failure
+```
+
+Current test coverage (`tests/test_order_book.cpp`):
+
+| Test | Description |
+|---|---|
+| `EmptyBook` | Fresh book has invalid/zero best bid and ask |
+| `SingleBidInsert` | Single bid is placed correctly |
+| `SingleAskInsert` | Single ask is placed correctly |
+| `MultipleBidsSorting` | Bids are kept in descending price order |
+| `MultipleAsksSorting` | Asks are kept in ascending price order |
+| `UpdateLevel` | Re-inserting at an existing price updates quantity, not adds |
+| `SpreadCalc` | Spread = best ask − best bid |
+| `ClearBook` | Clearing resets both sides to empty |
+| `CrossChunkInsert` | 40+ levels force a chunk split; best bid/ask remain correct |
+
+---
+
+## Benchmarks
+
+Benchmarks use [Google Benchmark](https://github.com/google/benchmark) and are also fetched automatically by CMake.
+
+```bash
+# From the build directory
+cmake --build . --target bench_order_book
+./bench/bench_order_book
+```
+
+Current benchmarks (`bench/bench_order_book.cpp`):
+
+| Benchmark | What it measures |
+|---|---|
+| `BM_OrderBookUpdate` | Throughput of `update()` with scattered prices (1M iterations) |
+| `BM_OrderBookBestBidRead` | Raw read latency of `best_bid()` (10M iterations) |
+
+---
+
 ## Roadmap
 
 - [x] **Phase 1** — Core types, clock, ring buffer, memory pool
-- [x] **Phase 2** — High-performance order book
+- [x] **Phase 2** — High-performance order book + unit tests + benchmarks
 - [ ] **Phase 3** — Exchange connectivity & feed handlers (Binance WebSocket)
 - [ ] **Phase 4** — Arbitrage detection strategy
 - [ ] **Phase 5** — Order execution layer
 - [ ] **Phase 6** — Risk management & kill switch
 - [ ] **Phase 7** — Integration, optimization, kernel bypass (Linux)
+
+---
 
 ## License
 
