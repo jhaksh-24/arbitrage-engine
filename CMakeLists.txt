@@ -33,16 +33,13 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 # Core Library
 # ==================================================================================================
 
-add_library(arb_core STATIC
-    # files to be added
-    apps/main.cpp
-)
+add_library(arb_core INTERFACE)
 
-target_include_directories(arb_core PUBLIC
+target_include_directories(arb_core INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_features(arb_core PUBLIC cxx_std_20)
+target_compile_features(arb_core INTERFACE cxx_std_20)
 
 # ==================================================================================================
 # Compiler Warnings
@@ -65,6 +62,27 @@ endif()
 
 add_executable(celae apps/main.cpp)
 target_link_libraries(celae PRIVATE arb_core)
+
+# ==================================================================================================
+# Testing (Google Test)
+# ==================================================================================================
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+add_executable(test_order_book tests/test_order_book.cpp)
+target_link_libraries(test_order_book PRIVATE arb_core gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(test_order_book)
 
 # ==================================================================================================
 # Status Messages
