@@ -56,7 +56,7 @@ public:
       auto &chunk = chunks_[i];
       bool found{false};
 
-      if (chunk.levels[ChunkSize - 1] > price) {
+      if (chunk.levels[chunk.count - 1].getPrice() > price) {
         for (auto &level : chunk.levels) {
           if (level.getPrice() == price) {
             level.setQty(qty);
@@ -68,8 +68,8 @@ public:
           insert_level(price, qty, chunk);
           break;
         }
-      } else if (chunk.levels[ChunkSize - 1] == price) {
-        chunk.levels[ChunkSize - 1].setQty(qty);
+      } else if (chunk.levels[chunk.count - 1].getPrice() == price) {
+        chunk.levels[chunk.count - 1].setQty(qty);
         break;
       }
     }
@@ -115,6 +115,12 @@ public:
     chunk.count++;
 
     return chunk;
+  }
+
+  Chunk &chunk_split(Price price, Quantity qty, Chunk &full_chunk) noexcept {
+    if (chunk_count_ == MaxChunks) {
+      return full_chunk;
+    }
   }
 
 private:
