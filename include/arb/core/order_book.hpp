@@ -54,27 +54,34 @@ public:
   void clear() noexcept { chunk_count_ = 0; }
 
   void set_level(Price price, Quantity qty) noexcept {
+    if (chunk_count_ == 0) {
+      chunk_count_ = 1;
+      insert_level(price, qty, chunks_[0]);
+      return;
+    }
+
     for (std::size_t i = 0; i < chunk_count_; ++i) {
       auto &chunk = chunks_[i];
-      bool found{false};
+      
+      // Determine if price belongs in or before this chunk
+      bool fits_in_chunk = is_bid_ ? (chunk.levels[chunk.count - 1].getPrice() <= price)
+                                   : (chunk.levels[chunk.count - 1].getPrice() >= price);
 
-      if (chunk.levels[chunk.count - 1].getPrice() > price) {
-        for (auto &level : chunk.levels) {
-          if (level.getPrice() == price) {
-            level.setQty(qty);
-            found = true;
+      if (fits_in_chunk) {
+        for (std::size_t j = 0; j < chunk.count; ++j) {
+          if (chunk.levels[j].getPrice() == price) {
+            chunk.levels[j].setQty(qty);
             return;
           }
         }
-        if (!found) {
-          insert_level(price, qty, chunk);
-          break;
-        }
-      } else if (chunk.levels[chunk.count - 1].getPrice() == price) {
-        chunk.levels[chunk.count - 1].setQty(qty);
-        break;
+        // Not found, belongs here -> insert
+        insert_level(price, qty, chunk);
+        return;
       }
     }
+
+    // Price is worse than everything in the book, append to the last chunk
+    insert_level(price, qty, chunks_[chunk_count_ - 1]);
   }
 
   Chunk &insert_level(Price price, Quantity qty, Chunk &chunk) noexcept {
