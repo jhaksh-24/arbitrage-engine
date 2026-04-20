@@ -51,9 +51,10 @@ public:
   }
 
   // Reset the book side — marks all chunks inactive.
-  void clear() noexcept { 
-    chunk_count_ = 0; 
-    chunks_[0].levels[0] = PriceLevel{}; // Clear the best level so best() returns empty
+  void clear() noexcept {
+    chunk_count_ = 0;
+    chunks_[0].levels[0] =
+        PriceLevel{}; // Clear the best level so best() returns empty
   }
 
   void set_level(Price price, Quantity qty) noexcept {
@@ -65,10 +66,11 @@ public:
 
     for (std::size_t i = 0; i < chunk_count_; ++i) {
       auto &chunk = chunks_[i];
-      
+
       // Determine if price belongs in or before this chunk
-      bool fits_in_chunk = is_bid_ ? (chunk.levels[chunk.count - 1].getPrice() <= price)
-                                   : (chunk.levels[chunk.count - 1].getPrice() >= price);
+      bool fits_in_chunk =
+          is_bid_ ? (chunk.levels[chunk.count - 1].getPrice() <= price)
+                  : (chunk.levels[chunk.count - 1].getPrice() >= price);
 
       if (fits_in_chunk) {
         for (std::size_t j = 0; j < chunk.count; ++j) {
@@ -134,7 +136,7 @@ public:
       return full_chunk;
     }
 
-    std::size_t idx = &full_chunk - &chunks_[0];
+    std::size_t idx = static_cast<std::size_t>(&full_chunk - &chunks_[0]);
 
     for (std::size_t index{chunk_count_}; index > idx; --index) {
       chunks_[index] = chunks_[index - 1];
