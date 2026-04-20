@@ -2,7 +2,7 @@
 
 A high-performance, low-latency cross-exchange arbitrage engine built in **C++20**. Designed to detect and exploit price discrepancies across cryptocurrency exchanges at microsecond-level speeds.
 
-> **Status:** Phase 2 — Order Book (in progress)
+> **Status:** Phase 3 — Exchange Connectivity (upcoming)
 
 ## Architecture
 
@@ -84,7 +84,7 @@ cmake --build . --config Release
 ## Roadmap
 
 - [x] **Phase 1** — Core types, clock, ring buffer, memory pool
-- [ ] **Phase 2** — High-performance order book
+- [x] **Phase 2** — High-performance order book
 - [ ] **Phase 3** — Exchange connectivity & feed handlers (Binance WebSocket)
 - [ ] **Phase 4** — Arbitrage detection strategy
 - [ ] **Phase 5** — Order execution layer
