@@ -133,7 +133,7 @@ cmake --build . --target bench_order_book
 Current benchmarks (`bench/bench_order_book.cpp`):
 
 | Benchmark | What it measures | stats on my end |
-|---|---|
+|---|---|---|
 | `BM_OrderBookUpdate` | Throughput of `update()` with scattered prices (1M iterations) | 11-12 ns |
 | `BM_OrderBookBestBidRead` | Raw read latency of `best_bid()` (10M iterations) | 0.114-0.156 ns |
 
