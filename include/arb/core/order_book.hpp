@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstring>
 
 namespace arb {
 
@@ -58,6 +59,11 @@ public:
   }
 
   void set_level(Price price, Quantity qty) noexcept {
+    if (qty.get() == 0) {
+      remove_level(price);
+      return;
+    }
+
     if (chunk_count_ == 0) {
       chunk_count_ = 1;
       insert_level(price, qty, chunks_[0]);
@@ -157,6 +163,44 @@ public:
       return insert_level(price, qty, chunks_[idx]);
     } else {
       return insert_level(price, qty, chunks_[idx + 1]);
+    }
+  }
+
+private:
+  void remove_level(Price price) noexcept {
+    for (std::size_t i = 0; i < chunk_count_; ++i) {
+      auto &chunk = chunks_[i];
+
+      // Determine if price might be in this chunk
+      bool might_be_in_chunk =
+          is_bid_ ? (chunk.levels[chunk.count - 1].getPrice() <= price)
+                  : (chunk.levels[chunk.count - 1].getPrice() >= price);
+
+      if (might_be_in_chunk) {
+        for (std::size_t j = 0; j < chunk.count; ++j) {
+          if (chunk.levels[j].getPrice() == price) {
+
+            // 1. Shift elements left to overwrite the deleted level
+            if (j < chunk.count - 1) {
+              std::memmove(&chunk.levels[j], &chunk.levels[j + 1],
+                           (chunk.count - j - 1) * sizeof(PriceLevel));
+            }
+            chunk.count--;
+
+            // 2. If the chunk is now empty, shift the chunks array left to
+            // avoid gaps
+            if (chunk.count == 0) {
+              if (i < chunk_count_ - 1) {
+                std::memmove(&chunks_[i], &chunks_[i + 1],
+                             (chunk_count_ - i - 1) * sizeof(Chunk));
+              }
+              chunk_count_--;
+            }
+
+            return;
+          }
+        }
+      }
     }
   }
 
