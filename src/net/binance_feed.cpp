@@ -45,10 +45,10 @@ void BinanceFeed::parse_depth_update(const std::string &payload) noexcept {
     return;
   }
 
-  simdjson::ondemand::document doc = doc_result.value();
+  simdjson::ondemand::document doc = std::move(doc_result).value();
 
-  auto [bids, err_b] = doc["b"].get_array();
-  if (err_b)
+  simdjson::ondemand::array bids;
+  if (doc["b"].get_array().get(bids))
     return;
 
   for (auto bid : bids) {
@@ -67,8 +67,8 @@ void BinanceFeed::parse_depth_update(const std::string &payload) noexcept {
     order_book_.update(Side::BUY, price, qty);
   }
 
-  auto [asks, err_a] = doc["a"].get_array();
-  if (err_a)
+  simdjson::ondemand::array asks;
+  if (doc["a"].get_array().get(asks))
     return;
 
   for (auto ask : asks) {

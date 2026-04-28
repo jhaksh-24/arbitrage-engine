@@ -3,6 +3,7 @@
 # ==================================================================================================
 
 cmake_minimum_required(VERSION 3.20)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 project(CELAE
     VERSION 0.1.0
     LANGUAGES CXX
@@ -42,19 +43,16 @@ target_include_directories(arb_core INTERFACE
 target_compile_features(arb_core INTERFACE cxx_std_20)
 
 # ==================================================================================================
-# Compiler Warnings
+# Compiler Warnings (applied only to our code, not third-party deps)
 # ==================================================================================================
 
 if(MSVC)
-    add_compile_options(
-        /W4 /permissive-
-    )
+    set(ARB_WARNINGS /W4 /permissive-)
 else()
-    add_compile_options(
-        -Wall -Wextra -Wpedantic
-        -Wsign-conversion
-    )
+    set(ARB_WARNINGS -Wall -Wextra -Wpedantic -Wsign-conversion)
 endif()
+
+target_compile_options(arb_core INTERFACE ${ARB_WARNINGS})
 
 # ==================================================================================================
 # Network & Parsing Libraries
@@ -71,20 +69,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(simdjson)
 
-# 2. mbedtls (Lightweight TLS backend for ixwebsocket on Windows)
-set(ENABLE_PROGRAMS OFF CACHE BOOL "" FORCE)
-set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(
-  mbedtls
-  GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
-  GIT_TAG v3.6.0
-)
-FetchContent_MakeAvailable(mbedtls)
-
-# 3. ixwebsocket (WebSocket Client)
+# 2. ixwebsocket (WebSocket Client — uses system OpenSSL)
 set(USE_TLS ON CACHE BOOL "" FORCE)
-set(USE_MBED_TLS ON CACHE BOOL "" FORCE)
-set(USE_OPEN_SSL OFF CACHE BOOL "" FORCE)
+set(USE_OPEN_SSL ON CACHE BOOL "" FORCE)
+set(USE_MBED_TLS OFF CACHE BOOL "" FORCE)
 set(USE_ZLIB OFF CACHE BOOL "" FORCE)
 set(IXWEBSOCKET_INSTALL OFF CACHE BOOL "" FORCE)
 
@@ -93,11 +81,6 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
   GIT_TAG v11.4.4
 )
-FetchContent_GetProperties(mbedtls)
-set(MBEDTLS_FOUND TRUE CACHE BOOL "" FORCE)
-set(MBEDTLS_INCLUDE_DIRS "${mbedtls_SOURCE_DIR}/include" CACHE PATH "" FORCE)
-set(MBEDTLS_LIBRARIES mbedtls mbedx509 mbedcrypto CACHE STRING "" FORCE)
-
 FetchContent_MakeAvailable(ixwebsocket)
 
 # ==================================================================================================
@@ -106,6 +89,12 @@ FetchContent_MakeAvailable(ixwebsocket)
 
 add_executable(celae apps/main.cpp)
 target_link_libraries(celae PRIVATE arb_core)
+
+add_executable(live_feed_test
+    apps/live_feed_test.cpp
+    src/net/binance_feed.cpp
+)
+target_link_libraries(live_feed_test PRIVATE arb_core ixwebsocket simdjson)
 
 # ==================================================================================================
 # Testing (Google Test)
