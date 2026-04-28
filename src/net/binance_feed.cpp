@@ -26,7 +26,6 @@ void BinanceFeed::stop(void) noexcept { web_sock.stop(); }
 
 void BinanceFeed::on_message(const ix::WebSocketMessagePtr &msg) noexcept {
   if (msg->type == ix::WebSocketMessageType::Message) {
-    std::cout << "[RECIEVING MESSAGE] ";
     parse_depth_update(msg->str);
   } else if (msg->type == ix::WebSocketMessageType::Open) {
     std::cout << "[CONNECTION OPEN] " << "Connected to Binance" << "\n\n";
@@ -37,7 +36,8 @@ void BinanceFeed::on_message(const ix::WebSocketMessagePtr &msg) noexcept {
 
 void BinanceFeed::parse_depth_update(const std::string &payload) noexcept {
   static simdjson::ondemand::parser parser;
-  auto doc_result = parser.iterate(payload);
+  simdjson::padded_string padded(payload);
+  auto doc_result = parser.iterate(padded);
 
   if (doc_result.error()) {
     std::cerr << "[ERROR] " << "Error parsing JSON: " << doc_result.error()
