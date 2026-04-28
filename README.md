@@ -38,13 +38,16 @@ A high-performance, low-latency cross-exchange arbitrage engine built in **C++20
 CELAE/
 ├── CMakeLists.txt                 # Build configuration (CMake 3.20+, C++20)
 ├── apps/
-│   └── main.cpp                   # Entry point
+│   ├── main.cpp                   # Entry point
+│   └── live_feed_test.cpp         # Live test for Binance WebSocket feed
 ├── include/arb/
 │   ├── core/
 │   │   ├── types.hpp              # Fundamental types: Price, Quantity, Timestamp, OrderId
 │   │   ├── price_level.hpp        # L2 price level (price + quantity aggregate)
 │   │   ├── order.hpp              # Order struct (aggregate for execution layer)
 │   │   └── order_book.hpp         # Chunked-array order book (BookSide, OrderBook)
+│   ├── net/
+│   │   └── binance_feed.hpp       # Binance L2 depth feed handler (IXWebSocket + simdjson)
 │   └── utils/
 │       ├── clock.hpp              # High-resolution timing (steady_clock, ScopedTimer)
 │       ├── ring_buffer.hpp        # Lock-free SPSC ring buffer for inter-thread comms
@@ -54,6 +57,8 @@ CELAE/
 ├── bench/
 │   └── bench_order_book.cpp       # Latency benchmarks for OrderBook (Google Benchmark)
 ├── src/                           # C++ implementation files
+│   └── net/
+│       └── binance_feed.cpp       # Binance WebSocket feed handler implementation
 └── docs/                          # Architecture & tuning docs (future)
 ```
 
@@ -143,7 +148,7 @@ Current benchmarks (`bench/bench_order_book.cpp`):
 
 - [x] **Phase 1** — Core types, clock, ring buffer, memory pool
 - [x] **Phase 2** — High-performance order book + unit tests + benchmarks
-- [ ] **Phase 3** — Exchange connectivity & feed handlers (Binance WebSocket)
+- [x] **Phase 3** — Exchange connectivity & feed handlers (Binance WebSocket)
 - [ ] **Phase 4** — Arbitrage detection strategy
 - [ ] **Phase 5** — Order execution layer
 - [ ] **Phase 6** — Risk management & kill switch
