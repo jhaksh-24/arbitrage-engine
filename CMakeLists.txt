@@ -54,34 +54,34 @@ endif()
 
 target_compile_options(arb_core INTERFACE ${ARB_WARNINGS})
 
-# ==================================================================================================
-# Network & Parsing Libraries
-# ==================================================================================================
+# # ==================================================================================================
+# # Network & Parsing Libraries
+# # ==================================================================================================
 
-# 1. simdjson (Fastest JSON parser)
-set(SIMDJSON_ENABLE_THREADS OFF CACHE BOOL "" FORCE)
-set(SIMDJSON_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-include (FetchContent)
-FetchContent_Declare(
-  simdjson
-  GIT_REPOSITORY https://github.com/simdjson/simdjson.git
-  GIT_TAG v3.9.5
-)
-FetchContent_MakeAvailable(simdjson)
+# # 1. simdjson (Fastest JSON parser)
+# set(SIMDJSON_ENABLE_THREADS OFF CACHE BOOL "" FORCE)
+# set(SIMDJSON_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+# include (FetchContent)
+# FetchContent_Declare(
+#   simdjson
+#   GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+#   GIT_TAG v3.9.5
+# )
+# FetchContent_MakeAvailable(simdjson)
 
-# 2. ixwebsocket (WebSocket Client — uses system OpenSSL)
-set(USE_TLS ON CACHE BOOL "" FORCE)
-set(USE_OPEN_SSL ON CACHE BOOL "" FORCE)
-set(USE_MBED_TLS OFF CACHE BOOL "" FORCE)
-set(USE_ZLIB OFF CACHE BOOL "" FORCE)
-set(IXWEBSOCKET_INSTALL OFF CACHE BOOL "" FORCE)
+# # 2. ixwebsocket (WebSocket Client — uses system OpenSSL)
+# set(USE_TLS ON CACHE BOOL "" FORCE)
+# set(USE_OPEN_SSL ON CACHE BOOL "" FORCE)
+# set(USE_MBED_TLS OFF CACHE BOOL "" FORCE)
+# set(USE_ZLIB OFF CACHE BOOL "" FORCE)
+# set(IXWEBSOCKET_INSTALL OFF CACHE BOOL "" FORCE)
 
-FetchContent_Declare(
-  ixwebsocket
-  GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
-  GIT_TAG v11.4.4
-)
-FetchContent_MakeAvailable(ixwebsocket)
+# FetchContent_Declare(
+#   ixwebsocket
+#   GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
+#   GIT_TAG v11.4.4
+# )
+# FetchContent_MakeAvailable(ixwebsocket)
 
 # ==================================================================================================
 # Executables + Linking
@@ -90,11 +90,21 @@ FetchContent_MakeAvailable(ixwebsocket)
 add_executable(celae apps/main.cpp)
 target_link_libraries(celae PRIVATE arb_core)
 
-add_executable(live_feed_test
-    apps/live_feed_test.cpp
-    src/net/binance_feed.cpp
+# add_executable(live_feed_test
+#     apps/live_feed_test.cpp
+#     src/net/binance_feed.cpp
+# )
+# target_link_libraries(live_feed_test PRIVATE arb_core ixwebsocket simdjson)
+add_executable(udp_feed_test
+    apps/udp_feed_test.cpp
+    src/net/udp_receiver.cpp
 )
-target_link_libraries(live_feed_test PRIVATE arb_core ixwebsocket simdjson)
+# On Windows, we need to link the 'ws2_32' library for networking
+if(WIN32)
+    target_link_libraries(udp_feed_test PRIVATE arb_core ws2_32)
+else()
+    target_link_libraries(udp_feed_test PRIVATE arb_core)
+endif()
 
 # ==================================================================================================
 # Testing (Google Test)
