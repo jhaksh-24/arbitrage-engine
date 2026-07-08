@@ -2,7 +2,7 @@
 
 A high-performance, low-latency cross-exchange arbitrage engine built in **C++20**. Designed to detect and exploit price discrepancies across cryptocurrency exchanges at microsecond-level speeds.
 
-> **Status:** Phase 3 — Exchange Connectivity (in progress)
+> **Status:** Phase 3 Complete — Low-Latency UDP Feed Handlers
 
 ---
 
@@ -39,7 +39,7 @@ CELAE/
 ├── CMakeLists.txt                 # Build configuration (CMake 3.20+, C++20)
 ├── apps/
 │   ├── main.cpp                   # Entry point
-│   └── live_feed_test.cpp         # Live test for Binance WebSocket feed
+│   └── udp_feed_test.cpp          # Live test for UDP multicast feed handler
 ├── include/arb/
 │   ├── core/
 │   │   ├── types.hpp              # Fundamental types: Price, Quantity, Timestamp, OrderId
@@ -47,7 +47,9 @@ CELAE/
 │   │   ├── order.hpp              # Order struct (aggregate for execution layer)
 │   │   └── order_book.hpp         # Chunked-array order book (BookSide, OrderBook)
 │   ├── net/
-│   │   └── binance_feed.hpp       # Binance L2 depth feed handler (IXWebSocket + simdjson)
+│   │   ├── market_messages.hpp    # Packed binary protocol structs (ITCH/SBE style)
+│   │   ├── udp_receiver.hpp       # Zero-allocation multicast UDP socket wrapper
+│   │   └── feed_handler.hpp       # L2 Book updater via reinterpret_cast
 │   └── utils/
 │       ├── clock.hpp              # High-resolution timing (steady_clock, ScopedTimer)
 │       ├── ring_buffer.hpp        # Lock-free SPSC ring buffer for inter-thread comms
@@ -58,7 +60,7 @@ CELAE/
 │   └── bench_order_book.cpp       # Latency benchmarks for OrderBook (Google Benchmark)
 ├── src/                           # C++ implementation files
 │   └── net/
-│       └── binance_feed.cpp       # Binance WebSocket feed handler implementation
+│       └── udp_receiver.cpp       # Non-blocking UDP multicast implementation
 └── docs/                          # Architecture & tuning docs (future)
 ```
 
@@ -148,7 +150,7 @@ Current benchmarks (`bench/bench_order_book.cpp`):
 
 - [x] **Phase 1** — Core types, clock, ring buffer, memory pool
 - [x] **Phase 2** — High-performance order book + unit tests + benchmarks
-- [x] **Phase 3** — Exchange connectivity & feed handlers (Binance WebSocket)
+- [x] **Phase 3** — Low-latency UDP Multicast Binary Feed Handlers
 - [ ] **Phase 4** — Arbitrage detection strategy
 - [ ] **Phase 5** — Order execution layer
 - [ ] **Phase 6** — Risk management & kill switch
