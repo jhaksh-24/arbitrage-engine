@@ -93,6 +93,8 @@ target_link_libraries(celae PRIVATE arb_core)
 add_executable(live_feed_test
     apps/live_feed_test.cpp
     src/net/binance_feed.cpp
+    src/net/bybit_feed.cpp
+    src/strategy/arbitrage_strategy.cpp
 )
 target_link_libraries(live_feed_test PRIVATE arb_core ixwebsocket simdjson)
 

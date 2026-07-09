@@ -3,7 +3,7 @@
 #include "arb/core/types.hpp"
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
+#include "arb/utils/logger.hpp"
 #include <simdjson.h>
 #include <string>
 #include <string_view>
@@ -28,9 +28,9 @@ void BinanceFeed::on_message(const ix::WebSocketMessagePtr &msg) noexcept {
   if (msg->type == ix::WebSocketMessageType::Message) {
     parse_depth_update(msg->str);
   } else if (msg->type == ix::WebSocketMessageType::Open) {
-    std::cout << "[CONNECTION OPEN] " << "Connected to Binance" << "\n\n";
+    arb::log::info("Connected to Binance");
   } else if (msg->type == ix::WebSocketMessageType::Error) {
-    std::cout << "[ERROR] " << msg->errorInfo.reason << "\n\n";
+    arb::log::error("Binance Error: %s", msg->errorInfo.reason.c_str());
   }
 }
 
@@ -40,8 +40,7 @@ void BinanceFeed::parse_depth_update(const std::string &payload) noexcept {
   auto doc_result = parser.iterate(padded);
 
   if (doc_result.error()) {
-    std::cerr << "[ERROR] " << "Error parsing JSON: " << doc_result.error()
-              << "\n\n";
+    arb::log::error("Error parsing Binance JSON: %s", simdjson::error_message(doc_result.error()));
     return;
   }
 
