@@ -1,8 +1,8 @@
 # CELAE — Cross-Exchange Latency Arbitrage Engine
 
-A high-performance, low-latency cross-exchange arbitrage engine built in **C++20**. Designed to detect and exploit price discrepancies across cryptocurrency exchanges at microsecond-level speeds.
+A high-performance, low-latency cross-exchange arbitrage engine built in **C++20**. Detects and simulates exploitation of price discrepancies between Binance and Bybit at microsecond-level speeds using WebSocket market data feeds, SIMD-accelerated JSON parsing, and a cache-friendly chunked-array order book.
 
-> **Status:** Phase 3 — Exchange Connectivity (in progress)
+> **Status:** Phase 4 complete — Arbitrage Strategy running against live dual-exchange feeds
 
 ---
 
@@ -11,22 +11,23 @@ A high-performance, low-latency cross-exchange arbitrage engine built in **C++20
 ```
 ┌─────────────────────────────────────────────────────┐
 │                  STRATEGY LAYER                      │
-│  Arbitrage detection, signal generation, position    │
-│  management, risk checks                             │
-├─────────────────────────────────────────────────────┤
-│               ORDER MANAGEMENT SYSTEM                │
-│  Order routing, fill tracking, state machine         │
+│  ArbitrageStrategy: cross-exchange spread detection, │
+│  fee-adjusted profit calculation, trade simulation   │
 ├──────────────────────┬──────────────────────────────┤
-│   EXCHANGE A         │       EXCHANGE B              │
+│   BINANCE            │       BYBIT                   │
 │  ┌──────────────┐    │    ┌──────────────┐          │
-│  │ Feed Handler │    │    │ Feed Handler │          │
-│  └──────────────┘    │    └──────────────┘          │
-│  ┌──────────────┐    │    ┌──────────────┐          │
-│  │ Order Gateway│    │    │ Order Gateway│          │
+│  │ BinanceFeed  │    │    │  BybitFeed   │          │
+│  │ (WebSocket)  │    │    │ (WebSocket)  │          │
+│  └──────┬───────┘    │    └──────┬───────┘          │
+│         │            │           │                   │
+│  ┌──────▼───────┐    │    ┌──────▼───────┐          │
+│  │  OrderBook   │    │    │  OrderBook   │          │
+│  │ <32,16>      │    │    │ <32,16>      │          │
 │  └──────────────┘    │    └──────────────┘          │
 ├──────────────────────┴──────────────────────────────┤
-│              NETWORK / CONNECTIVITY LAYER            │
-│  Kernel bypass, raw sockets, colocation              │
+│              CORE INFRASTRUCTURE                     │
+│  Strong types, fixed-point arithmetic, lock-free     │
+│  ring buffer, memory pool, ScopedTimer, fast logger  │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -39,7 +40,7 @@ CELAE/
 ├── CMakeLists.txt                 # Build configuration (CMake 3.20+, C++20)
 ├── apps/
 │   ├── main.cpp                   # Entry point
-│   └── live_feed_test.cpp         # Live test for Binance WebSocket feed
+│   └── live_feed_test.cpp         # Dual-exchange live test (Binance + Bybit + Strategy)
 ├── include/arb/
 │   ├── core/
 │   │   ├── types.hpp              # Fundamental types: Price, Quantity, Timestamp, OrderId
@@ -47,18 +48,25 @@ CELAE/
 │   │   ├── order.hpp              # Order struct (aggregate for execution layer)
 │   │   └── order_book.hpp         # Chunked-array order book (BookSide, OrderBook)
 │   ├── net/
-│   │   └── binance_feed.hpp       # Binance L2 depth feed handler (IXWebSocket + simdjson)
+│   │   ├── binance_feed.hpp       # Binance L2 depth feed handler (IXWebSocket + simdjson)
+│   │   └── bybit_feed.hpp         # Bybit V5 Linear Perps feed handler
+│   ├── strategy/
+│   │   └── arbitrage_strategy.hpp # Cross-exchange arbitrage detection & trade simulation
 │   └── utils/
 │       ├── clock.hpp              # High-resolution timing (steady_clock, ScopedTimer)
+│       ├── logger.hpp             # Low-latency synchronous logger (printf-based)
 │       ├── ring_buffer.hpp        # Lock-free SPSC ring buffer for inter-thread comms
 │       └── memory_pool.hpp        # Pre-allocated object pool (zero-alloc hot path)
+├── src/
+│   ├── net/
+│   │   ├── binance_feed.cpp       # Binance WebSocket feed handler implementation
+│   │   └── bybit_feed.cpp         # Bybit WebSocket feed handler implementation
+│   └── strategy/
+│       └── arbitrage_strategy.cpp # Arbitrage strategy implementation
 ├── tests/
 │   └── test_order_book.cpp        # Unit tests for OrderBook (Google Test)
 ├── bench/
 │   └── bench_order_book.cpp       # Latency benchmarks for OrderBook (Google Benchmark)
-├── src/                           # C++ implementation files
-│   └── net/
-│       └── binance_feed.cpp       # Binance WebSocket feed handler implementation
 └── docs/                          # Architecture & tuning docs (future)
 ```
 
@@ -71,6 +79,9 @@ All monetary values use `int64_t` with a scale factor of `10^8`, not `double`. F
 
 ### Strong Types
 `Price`, `Quantity`, `Timestamp`, `OrderId`, and `Duration` are all distinct types via a `StrongType<T, Tag>` wrapper. The compiler prevents accidentally passing a quantity where a price is expected.
+
+### SIMD-Accelerated JSON Parsing
+Both feed handlers use [simdjson](https://github.com/simdjson/simdjson) `ondemand` for zero-copy, hardware-accelerated JSON parsing. The Bybit parser iterates fields directly to handle non-deterministic key ordering in the JSON payload — a subtle but critical detail for `simdjson`'s forward-only iterator model.
 
 ### Lock-Free Communication
 Inter-thread communication uses a SPSC (Single-Producer, Single-Consumer) ring buffer with:
@@ -85,6 +96,22 @@ The order book is designed for minimal cache misses and zero heap allocation on 
 - Pre-allocated memory pool for order storage
 - O(1) best bid/ask access
 
+### Low-Latency Logger
+The logger uses `printf` instead of `std::cout` to avoid the overhead of C++ stream formatting and flushing. All log lines are prefixed with a high-resolution timestamp for latency analysis.
+
+---
+
+## Live Demo Output
+
+```
+[1783626375347] [INFO] BINANCE  | BID:    6333158 | ASK:    6333159
+[1783626375348] [INFO] BYBIT    | BID:    6330090 | ASK:    6330100
+[1783626375349] [INFO] [ARB DETECTED] Buy Bybit / Sell Binance | Profit Ticks: 3058.00 | Qty: 46317000
+[1783626375349] [INFO] -------------------------------------------------
+```
+
+With 0% fees (simulating VIP-tier access), the engine detects cross-exchange price discrepancies on every single tick. With realistic 0.05% taker fees, profitable opportunities are rare — which is exactly how real markets work.
+
 ---
 
 ## Build
@@ -97,11 +124,15 @@ cmake --build . --config Release
 
 **Requirements:** CMake 3.20+, C++20 compiler (MSVC 19.29+, GCC 11+, Clang 14+)
 
+**Dependencies** (fetched automatically by CMake):
+- [IXWebSocket](https://github.com/machinezone/IXWebSocket) — WebSocket client
+- [simdjson](https://github.com/simdjson/simdjson) — SIMD JSON parser
+- [Google Test](https://github.com/google/googletest) — Unit testing
+- [Google Benchmark](https://github.com/google/benchmark) — Microbenchmarks
+
 ---
 
 ## Testing
-
-Unit tests are written with [Google Test](https://github.com/google/googletest) and are fetched automatically by CMake.
 
 ```bash
 # From the build directory
@@ -127,15 +158,11 @@ Current test coverage (`tests/test_order_book.cpp`):
 
 ## Benchmarks
 
-Benchmarks use [Google Benchmark](https://github.com/google/benchmark) and are also fetched automatically by CMake.
-
 ```bash
 # From the build directory
 cmake --build . --target bench_order_book
 ./bench/bench_order_book
 ```
-
-Current benchmarks (`bench/bench_order_book.cpp`):
 
 | Benchmark | What it measures | stats on my end |
 |---|---|---|
@@ -148,9 +175,10 @@ Current benchmarks (`bench/bench_order_book.cpp`):
 
 - [x] **Phase 1** — Core types, clock, ring buffer, memory pool
 - [x] **Phase 2** — High-performance order book + unit tests + benchmarks
-- [x] **Phase 3** — Exchange connectivity & feed handlers (Binance WebSocket)
-- [ ] **Phase 4** — Arbitrage detection strategy
-- [ ] **Phase 5** — Order execution layer
+- [x] **Phase 3** — Exchange connectivity: Binance WebSocket feed handler
+- [x] **Phase 3.5** — Exchange connectivity: Bybit WebSocket feed handler
+- [x] **Phase 4** — Arbitrage detection strategy (fee-adjusted, with trade simulation)
+- [ ] **Phase 5** — Order execution layer (HMAC-SHA256 signed REST orders)
 - [ ] **Phase 6** — Risk management & kill switch
 - [ ] **Phase 7** — Integration, optimization, kernel bypass (Linux)
 
@@ -159,3 +187,4 @@ Current benchmarks (`bench/bench_order_book.cpp`):
 ## License
 
 MIT
+
